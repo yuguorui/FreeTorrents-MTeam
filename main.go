@@ -28,6 +28,7 @@ type Conf struct {
 	BlockList      []string `yaml:"blockList"`
 	DeletePrevious bool     `yaml:"deletePrevious"`
 	MaxTorrents    int      `yaml:"maxTorrents"`
+	MinLeechers    int      `yaml:"minLeechers"`
 }
 
 type Torrent struct {
@@ -69,6 +70,8 @@ type TorrentInfo struct {
 	Name   string `json:"name"`
 	Size   string `json:"size"`
 	Status struct {
+		Seeders         string `json:"seeders"`
+		Leechers        string `json:"leechers"`
 		Discount        string `json:"discount"`
 		DiscountEndTime string `json:"discountEndTime"`
 	} `json:"status"`
@@ -78,6 +81,7 @@ var host = "api2.m-team.cc"
 var baseUrl = "https://" + host
 var c Conf = Conf{
 	MaxTorrents: 5,
+	MinLeechers: 5,
 }
 
 var configFlag string
@@ -172,6 +176,12 @@ func fetchTorrents() {
 
 			daysLeft := int(time.Until(expireTime).Hours() / 24)
 			if daysLeft < c.FreeDays {
+				continue
+			}
+
+			if leechers, err := strconv.Atoi(t.Status.Seeders); err != nil {
+				continue
+			} else if leechers < c.MinLeechers {
 				continue
 			}
 
