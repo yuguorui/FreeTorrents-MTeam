@@ -21,11 +21,12 @@ import (
 )
 
 type Conf struct {
-	APIKey      string   `yaml:"apiKey"`
-	TorrentPath string   `yaml:"torrentPath"`
-	FreeDays    int      `yaml:"freeDays"`
-	FreeSize    float64  `yaml:"freeSize"`
-	BlockList   []string `yaml:"blockList"`
+	APIKey         string   `yaml:"apiKey"`
+	TorrentPath    string   `yaml:"torrentPath"`
+	FreeDays       int      `yaml:"freeDays"`
+	FreeSize       float64  `yaml:"freeSize"`
+	BlockList      []string `yaml:"blockList"`
+	DeletePrevious bool     `yaml:"deletePrevious"`
 }
 
 type Torrent struct {
@@ -85,19 +86,18 @@ var (
 
 func init() {
 	flag.StringVar(&configFlag, "c", "conf.yaml", "config file path")
-	file, err := os.OpenFile("freeTorrent.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		log.Fatal(err)
-	}
-	Info = log.New(file, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
-	Warning = log.New(file, "WARNING: ", log.Ldate|log.Ltime|log.Lshortfile)
-	Error = log.New(file, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
+	Info = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+	Warning = log.New(os.Stdout, "WARNING: ", log.Ldate|log.Ltime|log.Lshortfile)
+	Error = log.New(os.Stdout, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 }
 
 func main() {
 	flag.Parse()
 	c.getConf()
-	deleteTorrents()
+
+	if c.DeletePrevious {
+		deleteTorrents()
+	}
 	fetchTorrents()
 }
 
@@ -194,8 +194,15 @@ func fetchTorrents() {
 			continue
 		}
 
+		torrentFullName := c.TorrentPath + "[M-TEAM]" + t.Name + ".torrent"
+		if _, err := os.Stat(torrentFullName); err == nil {
+			Info.Println("Already exists: " + torrentFullName)
+			continue
+		}
+
 		id := t.ID
-		err := DownloadFile(c.TorrentPath+"[M-TEAM]"+t.Name+".torrent", id)
+		Info.Println("Downloading torrent: " + t.Name)
+		err := DownloadFile(torrentFullName, id)
 		if err != nil {
 			panic(err)
 		}
