@@ -27,6 +27,7 @@ type Conf struct {
 	FreeSize       float64  `yaml:"freeSize"`
 	BlockList      []string `yaml:"blockList"`
 	DeletePrevious bool     `yaml:"deletePrevious"`
+	MaxTorrents    int      `yaml:"maxTorrents"`
 }
 
 type Torrent struct {
@@ -75,7 +76,10 @@ type TorrentInfo struct {
 
 var host = "api2.m-team.cc"
 var baseUrl = "https://" + host
-var c Conf
+var c Conf = Conf{
+	MaxTorrents: 5,
+}
+
 var configFlag string
 
 var (
@@ -177,7 +181,13 @@ func fetchTorrents() {
 		}
 	}
 
+	downloadCount := 0
 	for _, t := range res {
+		if downloadCount >= c.MaxTorrents {
+			Info.Println("Reached max download limit: " + strconv.Itoa(c.MaxTorrents))
+			break
+		}
+
 		if t.Size > c.FreeSize {
 			continue
 		}
@@ -206,6 +216,7 @@ func fetchTorrents() {
 		if err != nil {
 			panic(err)
 		}
+		downloadCount++
 		Info.Println("Downloaded torrent: " + t.Name)
 	}
 }
