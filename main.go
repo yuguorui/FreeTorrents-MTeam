@@ -99,6 +99,8 @@ func main() {
 	flag.Parse()
 	c.getConf()
 
+	Info.Printf("config: %+v\n", c)
+
 	if c.DeletePrevious {
 		deleteTorrents()
 	}
